@@ -1,29 +1,35 @@
-document.getElementById("form").addEventListener("submit", async(e) => {
-    e.preventDefault();
+// ✅ CORREÇÃO: Espera o DOM carregar completamente
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("✅ Script.js carregado e pronto!");
 
-    try {
-        const form = new FormData(e.target);
+    document.getElementById("form").addEventListener("submit", async function(e) {
+        e.preventDefault();
+        console.log("📝 Formulário enviado via script.js");
+
+        const formData = new FormData(this);
         const data = {
-            nome: form.get("nome"),
-            idade: form.get("idade")
+            nome: formData.get("nome"),
+            idade: formData.get("idade")
         };
 
-        const res = await fetch("/gravar", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        });
+        console.log("📊 Dados a enviar:", data);
 
-        if (!res.ok) {
-            throw new Error(`Erro ${res.status}: ${await res.text()}`);
+        try {
+            const response = await fetch("/gravar", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.text();
+            console.log("✅ Resposta do servidor:", result);
+            alert(result);
+
+        } catch (error) {
+            console.error("❌ Erro:", error);
+            alert("Erro: " + error.message);
         }
-
-        alert(await res.text());
-
-    } catch (error) {
-        console.error("Erro:", error);
-        alert("Erro ao enviar: " + error.message);
-    }
+    });
 });
