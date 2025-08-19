@@ -1,15 +1,29 @@
 document.getElementById("form").addEventListener("submit", async(e) => {
     e.preventDefault();
-    const form = new FormData(e.target);
 
-    const res = await fetch("/gravar", {
-        method: "POST",
-        body: JSON.stringify({
+    try {
+        const form = new FormData(e.target);
+        const data = {
             nome: form.get("nome"),
             idade: form.get("idade")
-        }),
-        headers: { "Content-Type": "application/json" }
-    });
+        };
 
-    alert(await res.text());
+        const res = await fetch("/gravar", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!res.ok) {
+            throw new Error(`Erro ${res.status}: ${await res.text()}`);
+        }
+
+        alert(await res.text());
+
+    } catch (error) {
+        console.error("Erro:", error);
+        alert("Erro ao enviar: " + error.message);
+    }
 });
