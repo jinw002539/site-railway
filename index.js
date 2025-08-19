@@ -74,7 +74,7 @@ app.get('/health', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor rodando na porta ${PORT}`);
     console.log(`📊 Variáveis disponíveis:`, Object.keys(process.env).filter(key => key.includes('PG') || key.includes('DATABASE')));
 });
