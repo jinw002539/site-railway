@@ -7,29 +7,16 @@ const app = express();
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// REMOVA o dotenv - não é necessário no Railway
-// require('dotenv').config();
-
-// Use DATABASE_URL que o Railway fornece automaticamente
+// Conexão com PostgreSQL usando DATABASE_URL do Railway
 const client = new Client({
-    connectionString: process.env.DATABASE_URL || {
-        host: process.env.PGHOST,
-        user: process.env.PGUSER,
-        password: process.env.PGPASSWORD,
-        database: process.env.PGDATABASE,
-        port: process.env.PGPORT,
-    },
-    ssl: {
-        rejectUnauthorized: false
-    }
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
 });
 
-// Conexão com tratamento de erro melhorado
+// Conexão e criação de tabela
 client.connect()
     .then(() => {
-        console.log('Conectado ao PostgreSQL com sucesso!');
-
-        // Criar tabela se não existir
+        console.log('✅ Conectado ao PostgreSQL');
         return client.query(`
       CREATE TABLE IF NOT EXISTS pessoas (
         id SERIAL PRIMARY KEY,
@@ -39,42 +26,30 @@ client.connect()
       )
     `);
     })
-    .then(() => {
-        console.log('Tabela "pessoas" verificada/criada');
-    })
+    .then(() => console.log('✅ Tabela verificada/criada'))
     .catch(err => {
-        console.error('Erro na conexão com o banco:', err);
-        process.exit(1); // Encerra o app se não conectar
+        console.error('❌ Erro na conexão:', err);
+        process.exit(1);
     });
 
 app.post('/gravar', async(req, res) => {
     const { nome, idade } = req.body;
-
-    // Validação básica
-    if (!nome || !idade) {
-        return res.status(400).send("Nome e idade são obrigatórios");
-    }
-
     try {
-        await client.query('INSERT INTO pessoas (nome, idade) VALUES ($1, $2)', [nome, parseInt(idade)]);
+        await client.query('INSERT INTO pessoas (nome, idade) VALUES ($1, $2)', [nome, idade]);
         res.send("Gravado com sucesso!");
     } catch (e) {
-        console.error('Erro ao gravar:', e);
-        res.status(500).send("Erro ao gravar no banco de dados");
+        console.error(e);
+        res.status(500).send("Erro ao gravar");
     }
 });
 
-// Rota adicional para verificar saúde da aplicação
+// Health check endpoint OBRIGATÓRIO
 app.get('/health', (req, res) => {
-    res.status(200).json({
-        status: 'OK',
-        database: 'Connected',
-        timestamp: new Date().toISOString()
-    });
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// ✅ CORRIJA A LINHA CRÍTICA - deve escutar em 0.0.0.0
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-    console.log(`📊 Variáveis disponíveis:`, Object.keys(process.env).filter(key => key.includes('PG') || key.includes('DATABASE')));
+    console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
 });
