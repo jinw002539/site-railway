@@ -7,13 +7,13 @@ const app = express();
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Conexão com PostgreSQL usando DATABASE_URL do Railway
+// Conexão com PostgreSQL - formato correto para Railway
 const client = new Client({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL || `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT}/${process.env.PGDATABASE}`,
     ssl: { rejectUnauthorized: false }
 });
 
-// Conexão e criação de tabela
+// Conexão com banco
 client.connect()
     .then(() => {
         console.log('✅ Conectado ao PostgreSQL');
@@ -29,8 +29,12 @@ client.connect()
     .then(() => console.log('✅ Tabela verificada/criada'))
     .catch(err => {
         console.error('❌ Erro na conexão:', err);
-        process.exit(1);
     });
+
+// Rota principal para servir o HTML
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.post('/gravar', async(req, res) => {
     const { nome, idade } = req.body;
@@ -43,13 +47,19 @@ app.post('/gravar', async(req, res) => {
     }
 });
 
-// Health check endpoint OBRIGATÓRIO
+// Health check OBRIGATÓRIO para Railway
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+    res.status(200).json({
+        status: 'OK',
+        message: 'Servidor funcionando',
+        timestamp: new Date().toISOString()
+    });
 });
 
-// ✅ CORRIJA A LINHA CRÍTICA - deve escutar em 0.0.0.0
+// ✅ CORREÇÃO CRÍTICA - Railway precisa escutar em 0.0.0.0
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
+    console.log(`📊 Porta: ${PORT}`);
+    console.log(`🔗 Health check: http://0.0.0.0:${PORT}/health`);
 });
